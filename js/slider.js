@@ -10,7 +10,14 @@ function Slider(selector, options) {
 
 	var currentSlideIndex = options.currentSlide || 0,
 		imagesCount = sliderImagesNode.children.length,
-		slideSide = sliderImagesNode[(options.direction === 'vertical') ? 'offsetHeight' : 'offsetWidth'];
+		//width = 940px, height = 529px
+		slideSide = sliderImagesNode[(options.direction === 'vertical') ? 'offsetHeight' : 'offsetWidth'],
+		directionStyle = (options.direction === 'vertical') ? 'marginTop' : 'marginLeft',
+		directionStyleValue = currentSlideIndex;
+		frameSec = options.frameSec || 50,
+		animateDuration = options.animateDuration || 500,
+		dir = -1;
+		
 
 	
 
@@ -19,38 +26,76 @@ function Slider(selector, options) {
 			currentSlideIndex = imagesCount - 1;
 			return;
 		}
+		dir = 1;
 		currentSlideIndex--;
 	}
 
 	this.nextSlide = function() {
 		if (currentSlideIndex === imagesCount - 1) {
-			//currentSlideIndex = 0;
-			__self.__renderCycleNext();			
-			//return;
+			currentSlideIndex = 0;			
+			//console.log(currentSlideIndex);
+			return;
 		}
+		dir = -1;
 		currentSlideIndex++;
+		//console.log(currentSlideIndex);		
 	}
 
-	this.__renderCycleNext = function() {
-		currentSlideIndex--;
+	this.__renderCycleNext = function() {		
 		var firstImage = sliderImagesNode.children[0];
-		sliderImagesNode.removeChild(firstImage);
-		sliderImagesNode.appendChild(firstImage);
+		var copyFirstImage = firstImage.cloneNode(true);
+		sliderImagesNode.appendChild(copyFirstImage);
+		currentSlideIndex++;
+		//console.log(currentSlideIndex);
 		__self.__render();
+		sliderImagesNode.removeChild(firstImage);
+		//currentSlideIndex--;
 		//console.log(sliderImagesNode.style.marginLeft);
 
 		//console.log(currentSlideIndex);
 	}
 
 	this.__render = function() {
-		var directionStyle = (options.direction === 'vertical') ? 'marginTop' : 'marginLeft';
-		sliderImagesNode.style[directionStyle] = -(currentSlideIndex*slideSide) + 'px';
-		//console.log('margin');
-		console.log(sliderImagesNode.style.marginLeft);
+		__self.__animate(directionStyleValue, directionStyleValue + dir*slideSide);
+		//directionStyleValue += imageSize;
+		__self.__paginationRender();
+	}
+
+	this.__paginationRender = function() {
 		if (paginationNode.querySelector('.active')) {
 			paginationNode.querySelector('.active').classList.remove('active');
 		};
-		paginationNode.children[currentSlideIndex].querySelector('a').classList.add('active');
+		//paginationNode.children[currentSlideIndex].querySelector('a').classList.add('active');
+	}
+
+	this.__slidePicture = function(timePassedDuration) {
+		var start = directionStyleValue;
+		var finish;		
+		//if (timePassedDuration <= 1) {			
+			//sliderImagesNode.style[directionStyle] = (directionStyleValue + imageSize*timePassedDuration) + 'px';
+		//}else {
+			sliderImagesNode.style[directionStyle] = (directionStyleValue + imageSize) + 'px';			
+		//}
+		
+	}
+
+	this.__animate = function(startDirectionStyle, finishDirectionStyle) {
+		var startTime = Date.now();
+		var startDirectionStyle = startDirectionStyle;
+		var finishDirectionStyle = finishDirectionStyle;
+
+		var timer = setInterval(function() {
+			var timePassed = (Date.now() - startTime)/animateDuration;
+			if (timePassed >= 1) {
+				directionStyleValue = finishDirectionStyle;
+				clearInterval(timer);				
+			}else {
+				directionStyleValue = startDirectionStyle + (dir*timePassed*slideSide);
+			}			
+			
+			sliderImagesNode.style[directionStyle] = directionStyleValue + 'px';
+
+		}, 1000/frameSec);
 	}
 
 	this.__createPoints = function() {
@@ -78,6 +123,7 @@ function Slider(selector, options) {
 	nextSliderNode.onclick = function(e) {
 		e.preventDefault();
 		__self.nextSlide();
+		//console.log(currentSlideIndex);
 		__self.__render();
 	}
 
@@ -95,9 +141,13 @@ function Slider(selector, options) {
 	if (options.direction === 'vertical') {
             sliderImagesNode.style.whiteSpace = 'normal';
         }
+
         __self.__createPoints();
-    	
-    	__self.__render();
+        if (currentSlideIndex != 0) {
+        	__self.__animate(0, currentSlideIndex*slideSide);
+        }
+    	__self.__paginationRender();
+    	//__self.__render();
     };
 
     this.__init();
